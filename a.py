@@ -1,32 +1,66 @@
-from itertools import combinations
-import numpy as np
+import sys
+import re
+from copy import deepcopy
+from math import gcd
+from collections import defaultdict, Counter, deque
+D = open('inp.txt').read().strip()
+L = D.split('\n')
+G = [[c for c in row] for row in L]
 
-def man(p1, p2):
-    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+def rotate(G):
+  R = len(G)
+  C = len(G[0])
+  NG = [['?' for _ in range(R)] for _ in range(C)]
+  for r in range(R):
+    for c in range(C):
+      NG[c][R-1-r] = G[r][c]
+  return NG
 
-def find_paths(data, expand=1000000):
-    matrix = np.array([list(line.strip()) for line in data])
+def roll(G):
+  R = len(G)
+  C = len(G[0])
+  for c in range(C):
+    for _ in range(R):
+      for r in range(R):
+        if G[r][c]=='O' and r>0 and G[r-1][c]=='.':
+          G[r][c]='.'
+          G[r-1][c] = 'O'
+  return G
 
-    empty_rows = np.all(matrix == '.', axis=1)
-    empty_cols = np.all(matrix == '.', axis=0)
+def score(G):
+  ans = 0
+  R = len(G)
+  C = len(G[0])
+  for r in range(R):
+    for c in range(C):
+      if G[r][c]=='O':
+        ans += len(G)-r
+  return ans
 
-    real_matrix = np.insert(matrix, np.where(empty_cols)[0], '.', axis=1)
-    real_matrix = np.insert(real_matrix, np.where(empty_rows)[0], '.', axis=0)
+def show(G):
+  for r in range(len(G)):
+    print(''.join(G[r]))
 
-    coords = np.argwhere(real_matrix == '#')
-    indicies = {tuple(coord): i+1 for i, coord in enumerate(coords)}
 
-    for coord in coords:
-        coord[0] += np.sum(coord[0] > empty_rows) * (expand - 1)
-        coord[1] += np.sum(coord[1] > empty_cols) * (expand - 1)
+BY_GRID = {}
 
-    total_path_length = sum(man(coords[i], coords[j]) 
-                            for i, j in combinations(range(len(coords)), 2))
-
-    return total_path_length
-
-with open('inp.txt') as f:
-    data = f.read().split()
-
-print(find_paths(data, 1))
-print(find_paths(data))
+target = 10**9
+t = 0
+while t<target:
+  t += 1
+  for j in range(4):
+    G = roll(G)
+    if t==1 and j==0:
+      print(score(G)) # part1
+    G = rotate(G)
+  #print('='*80)
+  #show(G)
+  #print('='*80)
+  Gh = tuple(tuple(row) for row in G)
+  if Gh in BY_GRID:
+    cycle_length = t-BY_GRID[Gh]
+    amt = (target-t)//cycle_length
+    t += amt * cycle_length
+    print(f'cycle length: {cycle_length}, t={t}')
+  BY_GRID[Gh] = t
+print(score(G))
